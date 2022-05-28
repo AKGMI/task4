@@ -10,20 +10,29 @@ var BattleScene = cc.Scene.extend({
 
         this.addBackground();
 
-        this.solderView = new SolderView(this.battle.solder);
-        this.solderView.setPosition(this.width / 2 - this.width / 6, this.height / 2);
-        this.addChild(this.solderView);
+        this.solderViews = [];
+        this.battle.solders.forEach((solder, i) => {
+            solder.onDie = this.onSolderDie.bind(this);
+            this.solderViews[i] = new SolderView(solder);
+            this.solderViews[i].setPosition(this.width / 2 - this.width / 6 + (i % 2) * this.width / 10, this.height / 2 + (i - 1) * this.height / 5);
+            this.addChild(this.solderViews[i]);
+        });
 
-        this.enemyView = new SolderView(this.battle.enemy);
-        this.enemyView.setPosition(this.width / 2 + this.width / 6, this.height / 2);
-        this.addChild(this.enemyView);
+        this.enemyViews = [];
+        this.battle.enemies.forEach((enemy, i) => {
+            enemy.onDie = this.onSolderDie.bind(this);
+            this.enemyViews[i] = new SolderView(enemy);
+            this.enemyViews[i].setPosition(this.width / 2 + this.width / 6 - (i % 2) * this.width / 10, this.height / 2 + (i - 1) * this.height / 5);
+            this.addChild(this.enemyViews[i]);
+        });
 
-        this.addAttackButton();
+        this.addBoosterButton();
+        this.addCoinsLabel();
         this.playVersusAnimation();
 
         this.battle.onStart = this.onBattleStart.bind(this);
         this.battle.onEnd = this.onBattleEnd.bind(this);
-        this.solderView.solder.canAttack = this.onSolderCanAttack.bind(this);
+        this.battle.onUpdateBalance = this.onBattleBalanceUpdate.bind(this);
 
         cc.audioEngine.playMusic(resources.battle_music, true);
         cc.audioEngine.setMusicVolume(0.5);
@@ -37,29 +46,37 @@ var BattleScene = cc.Scene.extend({
         this.addChild(background);
     },
 
-    addAttackButton: function () {
+    addCoinsLabel: function() {
+        this.coinsLabel = new ccui.Text(this.battle.coins, resources.marvin_round.name, 50);
+        this.coinsLabel.enableShadow(cc.color(0, 0, 0, 255), cc.size(1, 1), 2.0);
+        this.coinsLabel.setPosition(this.width - (this.width / 15), this.height - (this.height / 10));
+        this.addChild(this.coinsLabel);
+    },
+
+    onBattleBalanceUpdate: function() {
+        this.coinsLabel.setString(this.battle.coins);
+    },
+
+    addBoosterButton: function () {
         var buttonSize = cc.spriteFrameCache.getSpriteFrame('button.png').getOriginalSize();
-        this.attackButton = new ccui.Button('#button.png', '#button_on.png', '#button_off.png', ccui.Widget.PLIST_TEXTURE);
-        this.attackButton.setScale9Enabled(true);
-        this.attackButton.setContentSize(180, 70);
-        this.attackButton.setCapInsets(cc.rect(buttonSize.width / 2 - 1, buttonSize.height / 2 - 1, 2, 2));
-        this.attackButton.setPosition(this.width / 2, this.height / 2 - this.height / 3);
-        this.addChild(this.attackButton);
+        this.boosterButton = new ccui.Button('#button.png', '#button_on.png', '#button_off.png', ccui.Widget.PLIST_TEXTURE);
+        this.boosterButton.setScale9Enabled(true);
+        this.boosterButton.setContentSize(180, 70);
+        this.boosterButton.setCapInsets(cc.rect(buttonSize.width / 2 - 1, buttonSize.height / 2 - 1, 2, 2));
+        this.boosterButton.setPosition(this.width / 2, this.height / 2 - this.height / 3);
+        this.addChild(this.boosterButton);
 
-        this.attackButton.setTitleText("ATTACK");
-        this.attackButton.setTitleFontSize(35);
-        this.attackButton.setTitleFontName(resources.marvin_round.name);
+        this.boosterButton.setTitleText("BOOST");
+        this.boosterButton.setTitleFontSize(35);
+        this.boosterButton.setTitleFontName(resources.marvin_round.name);
 
-        this.attackButton.setBright(false);
-
-        this.attackButton.addClickEventListener(function () {
+        this.boosterButton.addClickEventListener(function () {
             if (!this.battle.running) {
                 console.log("wait start");
                 return;
             }
 
-            this.battle.solder.attack(this.battle.enemy);
-            this.attackButton.setBright(false);
+            this.battle.boost();
         }.bind(this));
     },
 
@@ -90,20 +107,27 @@ var BattleScene = cc.Scene.extend({
     },
 
     onBattleStart: function() {
-        this.attackButton.setBright(true);
     },
 
     onBattleEnd: function(isVictory) {
-        this.attackButton.setBright(false);
-        if (this.attackButton.timeout != null) {
-            clearTimeout(this.attackButton.timeout);
-            this.attackButton.timeout = null;
-        }
-        
         this.playVictoryAnimation(isVictory);
     },
 
-    onSolderCanAttack: function() {
-        this.attackButton.setBright(true);
+    onSolderDie: function(solder) {
+        if (solder.type === 'solder') {
+            this.battle.solders.forEach((e, index) => {
+                if (e === solder) {
+                    this.battle.solders.splice(index, 1);
+                    return;
+                }
+            });
+        } else {
+            this.battle.enemies.forEach((e, index) => {
+                if (e === solder) {
+                    this.battle.enemies.splice(index, 1);
+                    return;
+                }
+            });
+        }
     }
 });

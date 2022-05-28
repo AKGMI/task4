@@ -93,7 +93,12 @@ var SolderView = cc.Node.extend({
         })
         this.addChild(damage);
 
-        let damageTxt = '-' + damageAmount;
+        let sign = '-';
+        if (damageAmount < 0) {
+            sign = '+';
+            damageAmount *= -1;
+        }
+        let damageTxt = sign + damageAmount;
         var damageLabel = new ccui.Text(damageTxt, resources.marvin_round.name, 15);
         damageLabel.enableShadow(cc.color(0, 0, 0, 255), cc.size(1, 1), 2.0);
         this.addChild(damageLabel);

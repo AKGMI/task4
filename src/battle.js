@@ -3,13 +3,36 @@
  */
 
 var Battle = function () {
-    this.solder = new Solder('solder');
-    this.enemy = new Solder('enemy');
+    this.coins = 100;
+    this.solders = [];
+    this.enemies = [];
+
+    let count = 3;
+    for (let i = 0; i < count; ++i) {
+        this.solders.push(new Solder('solder'));
+        this.enemies.push(new Solder('enemy'));
+    }
+
+    this.booster = new Booster(50, 50);
 
     this.onStart = function() {
     };
     this.onEnd = function (isVictory) {
     };
+    this.onUpdateBalance = function() {
+    };
+
+    this.updateBalance = function(count) {
+        this.coins += count;
+        this.onUpdateBalance();
+    };
+    this.boost = function() {
+        if (this.coins < this.booster.cost) return;
+
+        this.updateBalance(this.booster.cost * -1);
+        this.booster.use(this.solders);
+    };
+
     setTimeout(this.start.bind(this), 3000);
 };
 
@@ -23,20 +46,35 @@ Battle.prototype.start = function () {
 };
 
 Battle.prototype.run = function () {
-    if (!this.solder.isAlive() || !this.enemy.isAlive()) {
+    if (this.solders.length == 0 || this.enemies.length == 0) {
         this.stop();
         return;
     }
 
-    if (!this.nextEnemyAttack) {
-        this.nextEnemyAttack = Date.now() +
-            Math.random() * (Battle.ENEMY_INTERVAL[1] - Battle.ENEMY_INTERVAL[0]) + Battle.ENEMY_INTERVAL[0];
-    }
+    this.solders.forEach((solder => {
+        if (!solder.nextAttack) {
+            solder.nextAttack = Date.now() +
+                Math.random() * (Battle.SOLDER_INTERVAL[1] - Battle.SOLDER_INTERVAL[0]) + Battle.SOLDER_INTERVAL[0];
+        }
 
-    if (Date.now() > this.nextEnemyAttack) {
-        this.enemy.attack(this.solder);
-        delete this.nextEnemyAttack;
-    }
+        if (Date.now() > solder.nextAttack) {
+            solder.attack(this.enemies[Math.floor(Math.random() * this.enemies.length)]);
+            delete solder.nextAttack;
+        }
+    }));
+    
+    this.enemies.forEach((enemy => {
+        if (!enemy.nextAttack) {
+            enemy.nextAttack = Date.now() +
+                Math.random() * (Battle.ENEMY_INTERVAL[1] - Battle.ENEMY_INTERVAL[0]) + Battle.ENEMY_INTERVAL[0];
+        }
+
+        if (Date.now() > enemy.nextAttack) {
+            enemy.attack(this.solders[Math.floor(Math.random() * this.solders.length)]);
+            delete enemy.nextAttack;
+        }
+    }));
+
 };
 
 Battle.prototype.stop = function () {
@@ -46,7 +84,8 @@ Battle.prototype.stop = function () {
 
     clearInterval(this.interval);
 
-    this.onEnd(this.solder.isAlive());
+    this.onEnd(this.solders.length > 0);
 };
 
+Battle.SOLDER_INTERVAL = [1500, 3500];
 Battle.ENEMY_INTERVAL = [2000, 3000];

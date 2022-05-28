@@ -11,11 +11,11 @@ var Solder = function (type) {
 
     this.onDieAnimation = function () {
     };
+    this.onDie = function() {
+    };
     this.onAttackAnimation = function () {
     };
     this.onTakeDamageAnimation = function () {
-    };
-    this.canAttack = function() {
     };
 
     this.attackTime = 0;
@@ -33,6 +33,7 @@ Solder.prototype.takeDamage = function (damage) {
         this.onTakeDamageAnimation(damage);
     } else {
         this.onDieAnimation();
+        this.onDie(this);
     }
 };
 
@@ -44,7 +45,6 @@ Solder.prototype.attack = function (enemy) {
     }
 
     this.attackTime = Date.now();
-    setTimeout(() => {this.canAttack();}, Solder.ATTACK_INTERVAL);
 
     this.onAttackAnimation();
 
